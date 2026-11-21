@@ -17,7 +17,7 @@ For the results and model details, read the [project report](docs/report.pdf).
 Across 40 synthetic neighborhoods, each with 60 VvE buildings, the earliest feasible conversions lowered 2026-2050 emissions in all 40. The table uses baseline adopters (S0), the moderate electricity pathway, and repairs from the decision year. Each comparison pairs two replays of the same neighborhood.
 
 | Conversion schedule | Mean change in emissions | Mean change per neighborhood |
-| :---: | ---: | ---: |
+| :--- | ---: | ---: |
 | Earliest feasible | -7.5% | -2,070 t CO₂e |
 | Earliest with 3 extra years of collective preparation | -5.4% | -1,488 t CO₂e |
 | Earliest with 5 extra years of collective preparation | -4.3% | -1,177 t CO₂e |
