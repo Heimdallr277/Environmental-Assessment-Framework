@@ -26,6 +26,14 @@ Across 40 synthetic neighborhoods, each with 60 VvE buildings, the earliest feas
 
 About 87% of the earliest-date reduction occurred in collectively converting buildings. The 5th-95th percentile range across neighborhoods was -12.7% to -4.5% for the total percentage change. The earliest date is a conditional bound. The model assumes preparation times and an illustrative €3,775 district-heating connection grant per apartment. Individual choice is calibrated to two national sales shares. 
 
+### Effect of conversion timing
+
+<p align="center">
+  <img src="docs/timing.png" alt="Effects of conversion timing on life-cycle GHG emissions across simulated neighborhoods" width="900">
+</p>
+
+*Changes in life-cycle GHG emissions relative to the reference replay. Points indicate means and bars show 5th-95th percentile ranges across 40 synthetic neighborhoods. Timing is varied while adopters and technology choices are held fixed within each matched comparison.*
+
 ## Run the timing experiment
 
 From the repository root, run the following commands.
