@@ -1,0 +1,421 @@
+# =============================================================================
+# Parameter registry — vve-heat-abm-lca
+# Every model input lives here. Fields:
+#   value  : central (baseline) value used in deterministic runs
+#   unit   : unit of `value`
+#   dist   : sampling distribution for uncertainty analysis (omit = fixed)
+#            uniform{low,high} | triangular{low,mode,high} | loguniform{low,high}
+#   type   : provenance label
+#            documented  = value taken directly from a cited source
+#            derived     = calculated from documented values (calculation in `note`)
+#            proxy       = documented value for a related product/region used as stand-in
+#            assumption  = modeler's judgment (literature-informed where possible)
+#            scenario    = exploratory scenario input, not a forecast
+#            calibrated  = fitted inside the model to a documented/derived target
+#   source : key into the `sources` table at the bottom
+#   group  : behavior | institutional | housing | technical | background | cost | method
+#   gsa    : true if the parameter is a factor in the Sobol analysis
+# Retrieval date for all web sources: 2026-10-03.
+# =============================================================================
+
+# ---------------------------------------------------------------- characterization
+gwp100_ar6:
+  CO2_fossil:    {value: 1.0,    unit: kg CO2e/kg, type: documented, source: ipcc_ar6_gwp, group: method}
+  CH4_fossil:    {value: 29.8,   unit: kg CO2e/kg, type: documented, source: ipcc_ar6_gwp, group: method}
+  CH4_nonfossil: {value: 27.0,   unit: kg CO2e/kg, type: documented, source: ipcc_ar6_gwp, group: method}
+  N2O:           {value: 273.0,  unit: kg CO2e/kg, type: documented, source: ipcc_ar6_gwp, group: method}
+  HFC32:         {value: 771.0,  unit: kg CO2e/kg, type: documented, source: ipcc_ar6_gwp, group: method}
+  R290:          {value: 0.02,   unit: kg CO2e/kg, type: documented, source: swegon_epd_r290, group: method,
+                  note: "GWP of propane as stated in manufacturer EPDs; negligible either way"}
+  CO2e_embodied: {value: 1.0,    unit: kg CO2e/kg CO2e, type: assumption, source: none, group: method,
+                  note: "Aggregated cradle-to-gate EPD/LCA results are carried as CO2-equivalent and characterized like CO2 in the dynamic metric"}
+
+# ---------------------------------------------------------------- electricity background
+electricity:
+  ember_intensity_2025: {value: 253.56, unit: g CO2e/kWh, type: documented, source: owid_ember,
+                         group: background, note: "Lifecycle carbon intensity of Dutch generation, 2025"}
+  lifecycle_factor:      # IPCC AR5 WGIII Annex III lifecycle medians, g CO2e/kWh
+    gas:     {value: 490, unit: g CO2e/kWh, type: documented, source: ipcc_ar5_annex3, group: background}
+    coal:    {value: 820, unit: g CO2e/kWh, type: documented, source: ipcc_ar5_annex3, group: background}
+    biomass: {value: 230, unit: g CO2e/kWh, type: documented, source: ipcc_ar5_annex3, group: background}
+    wind:    {value: 11.5, unit: g CO2e/kWh, type: derived, source: ipcc_ar5_annex3, group: background,
+              note: "mean of onshore (11) and offshore (12) medians"}
+    solar:   {value: 44.5, unit: g CO2e/kWh, type: derived, source: ipcc_ar5_annex3, group: background,
+              note: "mean of utility (48) and rooftop (41) medians"}
+    nuclear: {value: 12,  unit: g CO2e/kWh, type: documented, source: ipcc_ar5_annex3, group: background}
+    hydro:   {value: 24,  unit: g CO2e/kWh, type: documented, source: ipcc_ar5_annex3, group: background}
+    other_fossil: {value: 700, unit: g CO2e/kWh, type: assumption, source: none, group: background,
+              note: "oil/other fossil; small share (3.9% in 2025)"}
+  mix_2025:   # shares of generation, OWID/Ember 2025
+    gas: {value: 0.3489, unit: '-', type: documented, source: owid_ember, group: background}
+    coal: {value: 0.0708, unit: '-', type: documented, source: owid_ember, group: background}
+    other_fossil: {value: 0.0388, unit: '-', type: documented, source: owid_ember, group: background}
+    wind: {value: 0.2497, unit: '-', type: documented, source: owid_ember, group: background}
+    solar: {value: 0.2112, unit: '-', type: documented, source: owid_ember, group: background}
+    nuclear: {value: 0.0296, unit: '-', type: documented, source: owid_ember, group: background}
+    biomass: {value: 0.0508, unit: '-', type: documented, source: owid_ember, group: background}
+    hydro: {value: 0.0004, unit: '-', type: documented, source: owid_ember, group: background}
+  grid_loss_factor: {value: 1.06, unit: '-', dist: {type: uniform, low: 1.04, high: 1.08},
+                     type: assumption, source: none, group: background, gsa: false,
+                     note: "transmission+distribution losses to low-voltage consumers"}
+  winter_weight_SH: {value: 1.15, unit: '-', dist: {type: uniform, low: 1.0, high: 1.35},
+                     type: assumption, source: seasonal_ef_lit, group: background, gsa: true,
+                     note: "ratio of heating-season-weighted to annual-average grid intensity, applied to heat-pump space-heating electricity; literature shows seasonal variation materially changes results"}
+  pathway_mix:   # SCENARIO shares of generation (not forecasts). Coal banned from 2030 (Wet verbod op kolen).
+    # columns: gas, coal, other_fossil, wind, solar, nuclear, biomass, hydro
+    slow:
+      2030: [0.35, 0.00, 0.03, 0.31, 0.24, 0.03, 0.04, 0.00]
+      2035: [0.28, 0.00, 0.02, 0.36, 0.27, 0.03, 0.04, 0.00]
+      2040: [0.22, 0.00, 0.01, 0.40, 0.28, 0.05, 0.04, 0.00]
+      2050: [0.12, 0.00, 0.00, 0.47, 0.30, 0.08, 0.03, 0.00]
+    moderate:   # anchored on KEV 2025: ~60% renewable electricity in 2030
+      2030: [0.30, 0.00, 0.02, 0.33, 0.27, 0.03, 0.05, 0.00]
+      2035: [0.18, 0.00, 0.01, 0.42, 0.30, 0.04, 0.05, 0.00]
+      2040: [0.10, 0.00, 0.00, 0.48, 0.31, 0.07, 0.04, 0.00]
+      2050: [0.03, 0.00, 0.00, 0.52, 0.32, 0.10, 0.03, 0.00]
+    fast:       # former 'CO2-free electricity by 2035' ambition
+      2030: [0.24, 0.00, 0.01, 0.37, 0.30, 0.03, 0.05, 0.00]
+      2035: [0.04, 0.00, 0.00, 0.50, 0.33, 0.07, 0.06, 0.00]
+      2040: [0.02, 0.00, 0.00, 0.52, 0.33, 0.09, 0.04, 0.00]
+      2050: [0.01, 0.00, 0.00, 0.53, 0.33, 0.10, 0.03, 0.00]
+  pathway_index: {value: 0.5, unit: '-', dist: {type: uniform, low: 0.0, high: 1.0}, type: scenario,
+                  source: none, group: background, gsa: true,
+                  note: "continuous GSA factor: 0 = slow, 0.5 = moderate, 1 = fast (piecewise-linear interpolation)"}
+
+# ---------------------------------------------------------------- gas background
+gas:
+  lhv_MJ_per_m3:   {value: 31.65, unit: MJ/m3, type: documented, source: co2ef_groengas_2021, group: background}
+  combustion_CO2:  {value: 1.779, unit: kg CO2/m3, type: documented, source: co2ef_changelog_2026, group: background,
+                    note: "tank-to-wheel (TTW) factor for natural gas"}
+  upstream_CO2e_ar4: {value: 0.355, unit: kg CO2e/m3, type: documented, source: co2ef_changelog_2026, group: background,
+                    note: "well-to-tank (WTT) factor, computed by the source with AR4-era GWPs"}
+  upstream_ch4_share: {value: 0.5, unit: '-', dist: {type: uniform, low: 0.3, high: 0.7}, type: assumption,
+                    source: none, group: background, gsa: false,
+                    note: "share of WTT CO2e that is methane; used only to re-characterize with AR6 and for dynamic forcing"}
+  upstream_gwp_ch4_source: {value: 28.0, unit: kg CO2e/kg, type: documented, source: co2ef_changelog_2026, group: method,
+                    note: "methane GWP used by the source"}
+  greengas_chain:  {value: 0.305, unit: kg CO2e/m3, type: documented, source: ce_delft_groengas_2025, group: background,
+                    note: "market-average chain emissions without manure bonus; combustion CO2 biogenic (not counted)"}
+  greengas_share:  # SCENARIO share of green gas in delivered gas (blending obligation from 2027)
+    low:  {2026: 0.01, 2031: 0.06, 2040: 0.08, 2050: 0.10}
+    high: {2026: 0.01, 2031: 0.08, 2040: 0.20, 2050: 0.35}
+  greengas_index: {value: 0.5, unit: '-', dist: {type: uniform, low: 0, high: 1}, type: scenario, source: none,
+                   group: background, gsa: true, note: "0 = low, 1 = high"}
+
+# ---------------------------------------------------------------- district heat background
+district_heat:
+  ef_2022: {value: 30.96, unit: kg CO2e/GJ, type: documented, source: ce_delft_warmtenetten_2024, group: background,
+            note: "average Dutch heat network, at end user incl. distribution losses (chain+direct)"}
+  ef_2030: {value: 14.60, unit: kg CO2e/GJ, type: documented, source: ce_delft_warmtenetten_2024, group: background,
+            note: "forecast for 2030"}
+  ef_2026_published: {value: 40.45, unit: kg CO2e/GJ, type: documented, source: co2ef_warmte_2025, group: background,
+            note: "factor published for 2026 (2024 data, raised by an outage at the largest network)"}
+  ef_2026: {value: 35.0, unit: kg CO2e/GJ, dist: {type: uniform, low: 31.0, high: 40.5}, type: derived,
+            source: co2ef_warmte_2025, group: background, gsa: false,
+            note: "between 2022 actual and 2026 published value"}
+  ef_2040: {value: 8.0, unit: kg CO2e/GJ, dist: {type: uniform, low: 4.0, high: 14.6}, type: assumption,
+            source: none, group: background, gsa: false}
+  ef_2050: {value: 4.0, unit: kg CO2e/GJ, dist: {type: uniform, low: 1.0, high: 10.0}, type: assumption,
+            source: none, group: background, gsa: false}
+  ef_scale: {value: 1.0, unit: '-', dist: {type: uniform, low: 0.6, high: 1.6}, type: assumption, source: none,
+             group: background, gsa: true, note: "multiplies the post-2026 DH pathway (source-mix uncertainty)"}
+  avi_share_2022: {value: 0.17, unit: '-', type: documented, source: ce_delft_warmtenetten_2024, group: background}
+  avi_share_2030: {value: 0.15, unit: '-', type: documented, source: ce_delft_warmtenetten_2024, group: background}
+  avi_fossil_alloc: {value: 40.0, unit: kg CO2/GJ heat, dist: {type: uniform, low: 25, high: 60}, type: assumption,
+                     source: none, group: method, gsa: false,
+                     note: "fossil CO2 of waste incineration allocated to heat in the 'burdened' allocation variant (the documented Dutch method assigns zero)"}
+
+# ---------------------------------------------------------------- housing (synthetic neighborhood)
+housing:
+  n_buildings: {value: 60, unit: buildings, type: assumption, source: none, group: housing}
+  apt_per_building_median: {value: 12, unit: apartments, type: assumption, source: vve_belang_2024, group: housing,
+                            note: "national mean = 1.4 million dwellings / 135,000 VvEs = 10.4; urban post-war blocks larger"}
+  apt_per_building_sigma: {value: 0.6, unit: log-sd, type: assumption, source: none, group: housing}
+  apt_per_building_min: {value: 4, unit: apartments, type: assumption, source: none, group: housing}
+  apt_per_building_max: {value: 80, unit: apartments, type: assumption, source: none, group: housing}
+  gas_use_mean_m3: {value: 740, unit: m3/yr, dist: {type: uniform, low: 650, high: 860}, type: derived,
+                    source: cbs_gas_profiles_2026, group: housing, gsa: true,
+                    note: "mean gas use of GAS-HEATED apartments. CBS 2024 weather-corrected profiles of gas-heated dwellings (heat-pump and DH dwellings excluded): old (<1992) small apartment 690 m3 (1 resident) / 860 m3 (2+ residents); new small apartment 550 m3 (1 resident). Derivation: 0.8 x mean(690, 860) + 0.2 x mean(550, 550 x 860/690) = 744, rounded to 740 (80% pre-1992 stock as in period_shares)"}
+  gas_use_all_apartments_m3: {value: 560, unit: m3/yr, type: documented, source: cbs_81528, group: housing,
+                    note: "CBS mean over ALL apartments 2024 (provisional); includes DH-heated dwellings with very low or zero gas use, so it understates gas-heated demand. Used only in the 'demand_560' sensitivity"}
+  gas_use_cv: {value: 0.35, unit: '-', type: assumption, source: none, group: housing}
+  share_dhw: {value: 0.22, unit: '-', dist: {type: uniform, low: 0.15, high: 0.30}, type: assumption,
+              source: keuze_gas, group: housing, gsa: true, note: "share of apartment gas use for hot water"}
+  share_cooking: {value: 0.03, unit: '-', type: assumption, source: keuze_gas, group: housing}
+  share_collective_boiler: {value: 0.20, unit: '-', type: assumption, source: none, group: housing,
+                            note: "share of buildings with an existing collective gas boiler (blokverwarming)"}
+  tenure_owner_occupier: {value: 0.48, unit: '-', type: documented, source: vve_belang_2024, group: housing}
+  tenure_corporation: {value: 0.20, unit: '-', type: documented, source: vve_belang_2024, group: housing}
+  tenure_private_landlord: {value: 0.32, unit: '-', type: derived, source: vve_belang_2024, group: housing,
+                            note: "remainder of 48% owner-occupied and 20% corporation"}
+  feasible_hybrid: {value: 0.35, unit: '-', dist: {type: uniform, low: 0.2, high: 0.5}, type: assumption,
+                    source: none, group: housing, gsa: true,
+                    note: "share of apartments where an individual (hybrid) heat-pump outdoor unit is technically/legally possible"}
+  feasible_allelectric: {value: 0.15, unit: '-', type: assumption, source: none, group: housing}
+  feasible_collective_hp: {value: 0.85, unit: '-', type: assumption, source: none, group: housing,
+                           note: "share of buildings where a collective air-water heat pump can be placed (roof/space/noise)"}
+  dh_zone_share: {value: 0.40, unit: '-', type: scenario, source: rekenkamer_2025, group: housing,
+                  note: "share of buildings inside a planned heat-network zone; heat networks are judged lowest-cost for about a third of the built environment"}
+  period_shares:   # construction-period shares of the synthetic stock (assumption) and gas-use multipliers
+    labels: [pre1945, 1945-1974, 1975-1991, 1992-2005, post2005]
+    share:  [0.15, 0.40, 0.25, 0.15, 0.05]
+    demand_multiplier: [1.25, 1.15, 0.95, 0.75, 0.55]
+
+# ---------------------------------------------------------------- technologies
+technologies:
+  boiler_ind:
+    eta_SH: {value: 1.04, unit: '-', type: documented, source: ce_delft_hr_factsheet, group: technical}
+    eta_DHW: {value: 0.72, unit: '-', type: documented, source: ce_delft_hr_factsheet, group: technical}
+    life: {value: 15, unit: yr, type: documented, source: ce_delft_hr_factsheet, group: technical}
+    embodied: {value: 417, unit: kg CO2e/unit, dist: {type: triangular, low: 250, mode: 417, high: 913},
+               type: proxy, source: atlantic_boiler_epd, group: technical, gsa: false,
+               note: "A1-A3 of a wall-hung condensing gas boiler EPD (79 kg); 913 kg = 25 kW floor-standing boiler EPD"}
+    capex: {value: 2250, unit: EUR, type: documented, source: ce_delft_hr_factsheet, group: cost,
+            note: "midpoint of EUR 1,500-3,000 incl. installation"}
+    maintenance: {value: 100, unit: EUR/yr, type: documented, source: ce_delft_hr_factsheet, group: cost}
+  hybrid_ind:
+    coverage_SH: {value: 0.78, unit: '-', dist: {type: uniform, low: 0.60, high: 0.92}, type: documented,
+                  source: installatiemonitor_3, group: technical, gsa: true,
+                  note: "average share of space heat supplied by the heat pump in hybrids (owner-occupied houses)"}
+    spf_SH: {value: 3.4, unit: '-', dist: {type: uniform, low: 2.7, high: 3.8}, type: documented,
+             source: installatiemonitor_3, group: technical, gsa: false}
+    hp_embodied: {value: 460, unit: kg CO2e/unit, dist: {type: triangular, low: 350, mode: 460, high: 700},
+                  type: derived, source: vaillant_epd, group: technical, gsa: false,
+                  note: "Vaillant 7 kW system A1-A3 1,260 kg x outdoor-unit mass share (139.4/286.8) = 612 kg, scaled to a 4 kW unit (x0.75)"}
+    capex_with_boiler: {value: 8300, unit: EUR, type: documented, source: milieucentraal_hybrid, group: cost}
+    charge_R290: {value: 0.6, unit: kg, type: derived, source: vaillant_epd, group: technical,
+                  note: "0.9 kg for 7 kW scaled to 4 kW"}
+    charge_R32: {value: 1.0, unit: kg, type: derived, source: daikin_r32, group: technical}
+    life: {value: 15, unit: yr, type: documented, source: vaillant_epd, group: technical}
+  allelectric_ind:
+    spf_SH: {value: 3.2, unit: '-', dist: {type: uniform, low: 2.6, high: 3.8}, type: documented,
+             source: installatiemonitor_3, group: technical, gsa: false, note: "all-electric with radiators"}
+    spf_DHW: {value: 2.3, unit: '-', dist: {type: uniform, low: 1.8, high: 2.8}, type: assumption,
+              source: none, group: technical, gsa: false}
+    embodied: {value: 1260, unit: kg CO2e/unit, dist: {type: triangular, low: 900, mode: 1260, high: 1600},
+               type: documented, source: vaillant_epd, group: technical, gsa: false,
+               note: "A1-A3 of aroTHERM plus 7 kW + uniTOWER plus (190 L tank)"}
+    capex: {value: 12500, unit: EUR, type: documented, source: rekenmachinepro_2026, group: cost,
+            note: "midpoint of EUR 10,000-15,000 incl. installation (secondary source)"}
+    charge_R290: {value: 0.9, unit: kg, type: documented, source: vaillant_epd, group: technical}
+    charge_R32: {value: 1.5, unit: kg, type: documented, source: daikin_r32, group: technical}
+    life: {value: 15, unit: yr, type: documented, source: vaillant_epd, group: technical}
+  hp_collective:
+    spf_SH: {value: 2.9, unit: '-', dist: {type: uniform, low: 2.4, high: 3.4}, type: assumption,
+             source: installatiemonitor_3, group: technical, gsa: true,
+             note: "below individual radiator value (3.2) because of higher collective supply temperatures"}
+    spf_DHW: {value: 2.2, unit: '-', dist: {type: uniform, low: 1.8, high: 2.6}, type: assumption,
+              source: none, group: technical, gsa: false}
+    dist_loss: {value: 0.10, unit: '-', dist: {type: uniform, low: 0.05, high: 0.20}, type: assumption,
+                source: none, group: technical, gsa: false}
+    kw_per_apt: {value: 4.5, unit: kW, dist: {type: uniform, low: 3.0, high: 6.0}, type: documented,
+                 source: breman_collectief, group: technical, gsa: false,
+                 note: "2-6 kW emission capacity per connected apartment"}
+    embodied_per_kw: {value: 63, unit: kg CO2e/kW, dist: {type: uniform, low: 45, high: 82}, type: derived,
+                      source: collective_hp_epds, group: technical, gsa: true,
+                      note: "range of A1-A3 per kW: 24 kW unit 1,090 kg (45/kW); 47 kW unit 3,830 kg (82/kW)"}
+    balance_of_plant: {value: 0.30, unit: '-', type: assumption, source: none, group: technical,
+                       note: "extra embodied share for buffer/DHW storage, controls"}
+    building_retrofit: {value: 250, unit: kg CO2e/apartment, dist: {type: uniform, low: 100, high: 500},
+                        type: assumption, source: none, group: technical, gsa: false,
+                        note: "new risers/heat-interface units when converting from individual boilers"}
+    capex_per_apt: {value: 12500, unit: EUR, type: documented, source: breman_collectief, group: cost,
+                    note: "indicative EUR 10,000-15,000 per dwelling"}
+    charge_R290_per_kw: {value: 0.13, unit: kg/kW, type: derived, source: vaillant_epd, group: technical}
+    life: {value: 18, unit: yr, type: assumption, source: none, group: technical}
+  boiler_collective:
+    eta_SH: {value: 0.98, unit: '-', type: assumption, source: none, group: technical}
+    eta_DHW: {value: 0.70, unit: '-', type: assumption, source: none, group: technical}
+    dist_loss: {value: 0.10, unit: '-', type: assumption, source: none, group: technical}
+    embodied_per_kw: {value: 17.5, unit: kg CO2e/kW, type: proxy, source: atlantic_varmax_epd, group: technical,
+                      note: "275 kW collective condensing boiler, 4,817 kg A1-A3"}
+    kw_per_apt: {value: 5.0, unit: kW, type: assumption, source: none, group: technical}
+    capex_per_apt: {value: 1800, unit: EUR, type: assumption, source: none, group: cost}
+    life: {value: 20, unit: yr, type: assumption, source: none, group: technical}
+  district_heat:
+    pipe_m_per_apt: {value: 5.0, unit: m, dist: {type: uniform, low: 3.0, high: 8.0}, type: assumption,
+                     source: none, group: technical, gsa: false}
+    pipe_kgco2e_per_m: {value: 40, unit: kg CO2e/m, dist: {type: uniform, low: 20, high: 75}, type: proxy,
+                        source: logstor_epd, group: technical, gsa: false,
+                        note: "TwinPipe DN100 A1-A3 = 72.5 kg/m (upper end); distribution/service pipes smaller"}
+    civil_works_factor: {value: 1.3, unit: '-', type: assumption, source: none, group: technical}
+    substation: {value: 100, unit: kg CO2e/apartment, type: assumption, source: none, group: technical}
+    building_retrofit: {value: 250, unit: kg CO2e/apartment, type: assumption, source: none, group: technical}
+    capex_owner: {value: 6000, unit: EUR/apartment, dist: {type: uniform, low: 4000, high: 9000}, type: assumption,
+                  source: none, group: cost, gsa: false, note: "connection contribution + in-building works"}
+    connection_grant: {value: 3775, unit: EUR/apartment, dist: {type: uniform, low: 0, high: 5300}, type: proxy,
+                       source: vve_grant_schemes, group: cost, gsa: false,
+                       note: "STYLIZED per-apartment grant for a collective DH connection, capped at gross cost. Level borrowed from the household ISDE amount, which is NOT available to members of a (mixed) VvE with a collective heat supply; real VvE support runs through SVVE (owner-occupier-only VvEs) or SAH (mixed VvEs) with scheme-specific amounts. Range up to a municipal maximum of EUR 5,300 per apartment for collective heat systems (Amsterdam 2026). Not a statement of Dutch policy"}
+    substation_life: {value: 25, unit: yr, type: assumption, source: none, group: technical}
+  embodied_A4A5_share: {value: 0.118, unit: '-', type: derived, source: vaillant_epd, group: technical,
+                        note: "transport+installation (A4 32.5 + A5 116 kg, EPD Table 14) relative to A1-A3 (1,260 kg); TRANSFERRED to all other equipment"}
+  embodied_C_share: {value: 0.0788, unit: '-', type: derived, source: vaillant_epd, group: technical,
+                     note: "end-of-life C1-C4 (0 + 2.36 + 96.2 + 0.726 = 99.3 kg, EPD Table 14) relative to A1-A3 (1,260 kg). TRANSFERRED to all other equipment (boilers, collective units, substations) for lack of module-level data in their EPDs; module D excluded"}
+  embodied_decline: {value: 0.015, unit: 1/yr, dist: {type: uniform, low: 0.0, high: 0.03}, type: assumption,
+                     source: none, group: technical, gsa: true,
+                     note: "annual decline of manufacturing emissions of equipment produced after 2026 (prospective background)"}
+  repair_share: {value: 0.10, unit: '-', type: assumption, source: none, group: technical,
+                 note: "embodied emissions of a bridging repair, as share of a new boiler"}
+  life_weibull_shape: {value: 4.0, unit: '-', type: assumption, source: none, group: technical,
+                       note: "service lives drawn from a Weibull distribution with the stated mean"}
+  maintenance:
+    hybrid_ind: {value: 150, unit: EUR/yr, type: assumption, source: none, group: cost}
+    allelectric_ind: {value: 150, unit: EUR/yr, type: assumption, source: none, group: cost}
+    hp_collective: {value: 120, unit: EUR/yr/apartment, type: assumption, source: none, group: cost}
+    boiler_collective: {value: 60, unit: EUR/yr/apartment, type: assumption, source: none, group: cost}
+    district_heat: {value: 0, unit: EUR/yr, type: assumption, source: none, group: cost, note: "included in the heat tariff"}
+  embodied_scale: {value: 1.0, unit: '-', dist: {type: uniform, low: 0.7, high: 1.4}, type: assumption, source: none,
+                   group: technical, gsa: true, note: "joint multiplier on all embodied (EPD) values"}
+  refrigerant:
+    leak_annual: {value: 0.03, unit: '-/yr', dist: {type: uniform, low: 0.02, high: 0.05}, type: documented,
+                  source: refrigerant_leak_lit, group: technical, gsa: false,
+                  note: "2%/yr (Vaillant EPD) to 5%/yr (Vering et al.)"}
+    leak_eol: {value: 0.20, unit: '-', dist: {type: uniform, low: 0.10, high: 0.30}, type: assumption,
+               source: refrigerant_leak_lit, group: technical, gsa: false, note: "Vering et al. assume 30%"}
+    r32_share_2026: {value: 0.5, unit: '-', type: assumption, source: fgas_2024, group: technical,
+                     note: "from 2027 F-gases with GWP>=150 banned in new monoblock (<=50 kW) and small split air-water units"}
+    r32_share_post2026: {value: 0.0, unit: '-', type: scenario, source: fgas_2024, group: technical,
+                         note: "0 under Reg. (EU) 2024/573; set to 0.6 in the 'no F-gas ban' counterfactual"}
+
+# ---------------------------------------------------------------- prices (real, constant; Jan 2026, incl. VAT)
+prices:
+  gas_per_m3: {value: 1.3136, unit: EUR/m3, type: derived, source: cbs_85592, group: cost,
+               note: "variable supply 0.5868 + energy tax 0.7268"}
+  elec_per_kwh: {value: 0.2606, unit: EUR/kWh, type: derived, source: cbs_85592, group: cost,
+                 note: "variable supply 0.1497 + energy tax 0.11085"}
+  gas_fixed_per_yr: {value: 360.69, unit: EUR/yr, type: derived, source: cbs_85592, group: cost,
+                     note: "transport 268.37 + fixed supply 92.32; avoided when the gas connection is removed"}
+  dh_cost_ratio: {value: 1.0, unit: '-', type: assumption, source: none, group: cost,
+                  note: "annual DH bill relative to the gas reference ('not more than otherwise' principle)"}
+  subsidy_share_hp: {value: 0.30, unit: '-', type: assumption, source: isde_eval, group: cost,
+                     note: "ISDE subsidy intensity for heat pumps (order of magnitude from ISDE evaluation scenarios)"}
+
+# ---------------------------------------------------------------- behavior (individual choice)
+behavior:
+  beta_cost: {value: -0.60, unit: 'utility per EUR 100/yr', dist: {type: uniform, low: -1.0, high: -0.3},
+              type: assumption, source: none, group: behavior, gsa: true}
+  beta_env: {value: 0.50, unit: 'utility per t CO2e/yr avoided (env=1)', dist: {type: uniform, low: 0.0, high: 1.2},
+             type: assumption, source: none, group: behavior, gsa: true}
+  beta_soc: {value: 2.0, unit: 'utility per unit adopter share', dist: {type: uniform, low: 0.0, high: 4.0},
+             type: assumption, source: arvanitopoulos_2025, group: behavior, gsa: true,
+             note: "empirical spatial spillovers in heat-pump uptake motivate a positive term; magnitude is assumed"}
+  beta_rel: {value: 2.0, unit: 'utility per unit perceived reliability', type: assumption, source: none, group: behavior}
+  discount_rate_median: {value: 0.12, unit: '1/yr', dist: {type: uniform, low: 0.06, high: 0.25}, type: assumption,
+                         source: schleich_2016, group: behavior, gsa: true,
+                         note: "implicit discount rates for household efficiency investments are typically high"}
+  horizon_years: {value: 12, unit: yr, type: assumption, source: none, group: behavior}
+  prior_rel_mean: {value: 0.60, unit: '-', type: assumption, source: none, group: behavior}
+  prior_rel_strength: {value: 4.0, unit: pseudo-observations, type: assumption, source: none, group: behavior}
+  true_rel: {value: 0.85, unit: '-', type: assumption, source: none, group: behavior}
+  env_mean: {value: 0.5, unit: '-', type: assumption, source: none, group: behavior}
+  env_beta_a: {value: 2.0, unit: '-', type: assumption, source: none, group: behavior,
+               note: "environmental attitude ~ Beta(a, b), mean a/(a+b)"}
+  env_beta_b: {value: 2.0, unit: '-', type: assumption, source: none, group: behavior}
+  discount_sigma: {value: 0.4, unit: log-sd, type: assumption, source: none, group: behavior}
+  soc_own_weight: {value: 0.5, unit: '-', type: assumption, source: none, group: behavior,
+                   note: "weight of own building vs network-neighbor buildings in the descriptive social norm"}
+  obs_neighbor_rate: {value: 0.2, unit: observations per neighbor-building HP, type: assumption, source: none, group: behavior}
+  obs_cap: {value: 10, unit: observations/yr, type: assumption, source: none, group: behavior}
+  network_k: {value: 4, unit: neighbors, type: assumption, source: none, group: behavior,
+              note: "Watts-Strogatz building network: mean degree"}
+  network_p: {value: 0.1, unit: '-', type: assumption, source: none, group: behavior}
+  calib_gas_m3: {value: 770, unit: m3/yr, type: documented, source: cbs_81528, group: behavior,
+                 note: "calibration reference household: terraced house, average gas use 2024 (provisional)"}
+  calib_social_share: {value: 0.099, unit: '-', type: derived, source: kev_2026_hp_stock, group: behavior,
+                       note: "829,000 heat pumps (end 2025) / 8,344,953 dwellings (1 Jan 2026)"}
+  target_share_hybrid_2025: {value: 0.10, unit: '-', dist: {type: uniform, low: 0.07, high: 0.13}, type: derived,
+                             source: dne_trendrapport_2026, group: behavior, gsa: false,
+                             note: "43,000 hybrid sales in 2025 / ~430,000 heating replacements per year"}
+  target_share_allelectric_2025: {value: 0.07, unit: '-', dist: {type: uniform, low: 0.04, high: 0.10}, type: derived,
+                                  source: dne_trendrapport_2026, group: behavior, gsa: false,
+                                  note: "86,000 residential all-electric sales in 2025, assumed ~35% to existing homes, / ~430,000 replacements"}
+
+# ---------------------------------------------------------------- institutional (VvE decision-making)
+institutional:
+  deed_num: {value: 2, unit: '-', type: assumption, source: vve_versnellingsagenda, group: institutional,
+             note: "baseline deed rule (numerator): a collective proposal passes if deed_den x yes >= deed_num x votes cast (exact integer comparison). Older regulations often require 2/3 or 3/4; the true distribution of deed rules is unknown, so a common 2/3 rule is assumed for BOTH collective heat pumps and DH offers"}
+  deed_den: {value: 3, unit: '-', type: assumption, source: vve_versnellingsagenda, group: institutional}
+  quorum: {value: 0.5, unit: '-', type: assumption, source: vve_versnellingsagenda, group: institutional,
+           note: "quorum is retained in the reform proposal; its level depends on the regulations"}
+  turnout: {value: 0.60, unit: '-', dist: {type: uniform, low: 0.4, high: 0.8}, type: assumption, source: none,
+            group: institutional, gsa: true}
+  agenda_base: {value: 0.08, unit: 1/yr, dist: {type: uniform, low: 0.03, high: 0.20}, type: assumption, source: none,
+                group: institutional, gsa: true}
+  agenda_mjop_boost: {value: 0.40, unit: '-', type: assumption, source: none, group: institutional,
+                      note: "added agenda probability in a major-maintenance (MJOP) year"}
+  agenda_dh_offer_boost: {value: 0.50, unit: '-', type: assumption, source: none, group: institutional}
+  small_vve_size: {value: 8, unit: apartments, type: documented, source: bzk_vve_study, group: institutional,
+                   note: "small VvEs are less well organized and decide less easily"}
+  small_vve_factor: {value: 0.5, unit: '-', type: assumption, source: bzk_vve_study, group: institutional}
+  inertia: {value: 0.5, unit: utility, dist: {type: uniform, low: 0.0, high: 1.5}, type: assumption, source: none,
+            group: institutional, gsa: true}
+  sunk_cost_weight: {value: 1.0, unit: '-', dist: {type: uniform, low: 0.0, high: 1.5}, type: assumption, source: none,
+                     group: institutional, gsa: true}
+  landlord_yes_prob: {value: 0.30, unit: '-', dist: {type: uniform, low: 0.1, high: 0.6}, type: assumption, source: none,
+                      group: institutional, gsa: true}
+  corporation_budget: {value: 14000, unit: EUR/apartment, type: assumption, source: none, group: institutional}
+  agenda_interest_boost: {value: 0.3, unit: '-', type: assumption, source: none, group: institutional,
+                          note: "agenda probability added per unit heat-pump share in the building (bottom-up initiative)"}
+  impl_lag_min: {value: 1, unit: yr, type: assumption, source: none, group: institutional}
+  impl_lag_max: {value: 3, unit: yr, type: assumption, source: none, group: institutional}
+  cooldown: {value: 3, unit: yr, type: assumption, source: none, group: institutional}
+  mjop_interval: {value: 10, unit: yr, type: assumption, source: none, group: institutional}
+
+# ---------------------------------------------------------------- policy & scenario settings
+policy:
+  dh_arrival_year: {value: 2035, unit: year, type: scenario, source: none, group: institutional}
+  hybrid_standard_year: {value: 2029, unit: year, type: documented, source: coalition_2026, group: institutional}
+  majority_reform_year: {value: 2028, unit: year, type: assumption, source: vve_versnellingsagenda, group: institutional,
+                         note: "S2: strict simple majority (2 x yes > votes cast) for all collective sustainability decisions; planned reform, entry year assumed"}
+  dh_majority_year: {value: 2027, unit: year, type: scenario, source: wcw_vve, group: institutional,
+                     note: "S2d HYPOTHETICAL: strict simple majority for DH offers only, overriding deed rules. The Collective Heat Act sets an absolute-majority default for accepting a designated heat company's offer but lets VvE regulations prescribe a higher threshold, which normally applies; the v1 baseline wrongly treated the default as binding"}
+  dh_cancel_year: {value: 2032, unit: year, type: scenario, source: none, group: institutional,
+                   note: "S4c: heat network announced for 2035 and canceled in this year"}
+  collective_subsidy_extra: {value: 0.20, unit: '-', type: scenario, source: none, group: cost,
+                             note: "S3: extra subsidy share on collective heat-pump and DH connection capex"}
+  bridging_window: {value: 5, unit: yr, type: scenario, source: none, group: institutional,
+                    note: "S5: owners repair instead of replacing a failed boiler when a collective decision is planned within this window"}
+
+# ---------------------------------------------------------------- sources
+sources:
+  ipcc_ar6_gwp: "IPCC AR6 WGI Ch.7 Table 7.SM.7 GWP100 values, as compiled in GHG Protocol (2024) 'IPCC Global Warming Potential Values' v2.0 — https://ghgprotocol.org/sites/default/files/2024-08/Global-Warming-Potential-Values%20%28August%202024%29.pdf"
+  ipcc_ar5_annex3: "IPCC (2014) AR5 WGIII Annex III, lifecycle GHG medians of electricity technologies — https://www.ipcc.ch/site/assets/uploads/2018/02/ipcc_wg3_ar5_annex-iii.pdf (values as tabulated in https://en.wikipedia.org/wiki/Life-cycle_greenhouse_gas_emissions_of_energy_sources)"
+  owid_ember: "Our World in Data energy dataset (Ember Yearly Electricity Data 2026), CC BY 4.0 — https://github.com/owid/energy-data"
+  co2ef_changelog_2026: "CO2emissiefactoren.nl, Wijzigingenlijst emissiefactoren 2015-2026 (natural gas WTW 2.134 = TTW 1.779 + WTT 0.355) — https://co2emissiefactoren.nl/media/archive/Wijzigingenlijst_emissiefactoren_2015-2026_18YLD2f.pdf"
+  co2ef_groengas_2021: "CO2emissiefactoren.nl, CO2 emissies Groen Gas samenvattend document (1 m3 = 31.65 MJ LHV) — https://co2emissiefactoren.nl/media/sources/CO2_emissies_Groen_Gas_samenvattend_document_definitief.pdf"
+  ce_delft_groengas_2025: "CE Delft (2025) CO2-emissiefactoren groen gas, update 2025 — https://ce.nl/wp-content/uploads/2025/11/CE_Delft_250416_Update_CO2-emissiefactoren_groen_gas_2025_Def.pdf"
+  ce_delft_warmtenetten_2024: "CE Delft (2024) Ketenemissies warmtenetten (Tables 1-2) — https://co2emissiefactoren.nl/media/sources/CE_Delft_240293_Ketenemissies_warmtenetten_Def.pdf"
+  co2ef_warmte_2025: "Stimular (2025) Berekeningen en achtergronden emissiefactoren warmtelevering — https://co2emissiefactoren.nl/media/sources/Berekeningen_en_achtergronden_emissiefactoren_warmtelevering_oktober_2025.pdf"
+  cbs_81528: "CBS StatLine 81528NED Energieverbruik particuliere woningen; woningtype en regio's — https://www.cbs.nl/nl-nl/cijfers/detail/81528NED"
+  cbs_85592: "CBS StatLine 85592NED Gemiddelde energietarieven voor consumenten (Jan 2026) — https://www.cbs.nl/nl-nl/cijfers/detail/85592NED"
+  keuze_gas: "Keuze.nl, gemiddeld gasverbruik (hot water ~150 m3/yr for 3 persons; cooking ~37 m3/yr) — https://www.keuze.nl/energie/gemiddeld-gasverbruik"
+  vve_belang_2024: "VvE Belang (2024) Plenaire opening: 135,000 VvEs, 1.4 million dwellings (48% owner-occupied, 20% corporation) — https://www.vvebelang.nl/wp-content/uploads/2024/10/Plenaire-Opening-2024-door-Kees-Oomen.pdf"
+  vve_versnellingsagenda: "Tweede Kamer 30196 nr. 855 (2025) VvE acceleration agenda: 2/3 or 3/4 majorities in old regulations; 50%+1 planned; quorum retained — https://eerstekamer.nl/9370000/1/j4nvi0xeni9vr2l_j9vvkfvj6b325az/vmso3yg2mpyv/f=/vmsj3wrhvdyg.pdf"
+  bzk_vve_study: "Ministry of BZK VvE study (small VvEs <10 dwellings decide less easily) — https://zoek.officielebekendmakingen.nl/blg-1129049.pdf"
+  rekenkamer_2025: "Algemene Rekenkamer (2025) Government heat network policy at odds with domestic heat pump grants — https://english.rekenkamer.nl/latest/news/2025/02/04/government-heat-network-policy-at-odds-with-domestic-heat-pump-grants"
+  ce_delft_hr_factsheet: "CE Delft (2021) Factsheet HR-combiketel (efficiency 104%/72%, EUR 1,500-3,000, ~15 yr, EUR 100/yr) — https://ce.nl/wp-content/uploads/2021/04/01_Factsheet-HR-combiketel_DEF.pdf"
+  atlantic_boiler_epd: "Groupe Atlantic EPDs via One Click LCA: wall-hung gas boiler 79 kg, A1-A3 417 kg CO2e; 25 kW gas boiler 177.9 kg, 913 kg CO2e — https://materials.oneclicklca.com/en/material/gas-boiler-for-domestic-hot-water/67ddb5bab223531aa2b44500"
+  atlantic_varmax_epd: "Groupe Atlantic Varmax 275 kW collective condensing boiler EPD, A1-A3 4,817 kg CO2e — https://materials.oneclicklca.com/en/material/collective-condensing-gas-boiler/6392e15472ab6a60121ed0af"
+  installatiemonitor_3: "RVO Installatiemonitor 3.0 (6,000+ homes): hybrid coverage 78%, SCOP hybrid 3.4, all-electric 3.5, radiators 3.2 — https://solarmagazine.nl/nieuws-zonne-energie/i44032/consumenten-met-hybride-warmtepomp-gebruiken-78-procent-minder-gas-per-jaar"
+  vaillant_epd: "Kiwa EPD-Kiwa-EE-000387-EN, Vaillant aroTHERM plus 7 kW + uniTOWER plus: A1-A3 ~1,260 kg CO2e, R290 0.9 kg, RSL 15 yr, 2%/yr leakage — https://www.kiwa.com/497339/globalassets/germany/veroffentlichte-epds/2024/0424/epd-kiwa-ee-000387-en.pdf"
+  daikin_r32: "Daikin Altherma 3 monobloc datasheet: R32 charge 1.5 kg (4-8 kW) — https://robert-price.co.uk/wp-content/uploads/2022/06/Daikin-Altherma-3-Monobloc-Heat-Pump-4-6-8-Preliminary-Datasheet.pdf"
+  collective_hp_epds: "Swegon Epsilon Zero 24 kW EPD (212 kg, 1,090 kg CO2e A1-A3) — https://www.swegon.com/globalassets/digizuite/19378-en-epsilon_zero_epd_en.pdf ; Groupe Atlantic 47 kW monobloc EPD (575 kg, 3,830 kg CO2e) — https://materials.oneclicklca.com/en/material/airwater-monobloc-heat-pump/678a9fb94bdfaa6b2839b1ba"
+  swegon_epd_r290: "Swegon Titan Zero EPD (R290 GWP 0.02) — https://www.swegon.com/globalassets/digizuite/11498-en-titanzero_ch_epd_en.pdf"
+  breman_collectief: "Techniek Nederland/Breman collective hybrid approach for portiek/galerij apartment buildings: 2-6 kW per apartment; EUR 10,000-15,000 per dwelling — https://www.technieknederland.nl/media/5fxfg4ua/breman-vragenlijst-wp-aanpak-voor-collectief-hybride.pdf"
+  logstor_epd: "Logstor Rigid TwinPipe S1 DN100 EPD (EPD Hub HUB-2840): 72.5 kg CO2e/m A1-A3 — https://www.logstor.com/media/8173/epd_hub-2840_twin-dn100_315-s1-2025-02-07-2025-02-13.pdf"
+  milieucentraal_hybrid: "Milieu Centraal via Selectra: hybrid 4 kW ~EUR 6,200 (keep boiler), ~EUR 8,300 with new boiler — https://selectra.nl/energie/verwarming/cv-ketel"
+  rekenmachinepro_2026: "Rekenmachinepro (2026) Hybride of all-electric warmtepomp: EUR 10,000-15,000 — https://rekenmachinepro.nl/blog/warmtepomp-hybride-vs-all-electric/"
+  isde_eval: "Eerste Kamer: ISDE subsidy-intensity scenarios (30% / 14% / 21%) — https://eerstekamer.nl/9370000/1/j4nvgs5kjg27kof_j9vvkfvj6b325az/vmoqgz4tawzy"
+  refrigerant_leak_lit: "Vering et al. leakage assumptions (5%/yr, 30% at EoL) — https://heatpumpingtechnologies.org/content/uploads/sites/78/2025/01/20241007veringtowardscehps.pdf ; Vaillant EPD (2%/yr)"
+  fgas_2024: "European Commission, F-gas rules for stationary AC and heat pumps (Reg. 2024/573) — https://climate.ec.europa.eu/areas-action/fluorinated-greenhouse-gases/climate-friendly-alternatives-f-gases/air-conditioning_en"
+  seasonal_ef_lit: "Seasonal variation of heat-pump emission factors (Finland, CHP vs GSHP) — https://agris.fao.org/search/en/records/65e00eaf0f3e94b9e5decac4 ; hourly analysis (Neirotti et al. 2020, Energy 195) — https://ideas.repec.org/a/eee/energy/v195y2020ics0360544220300815.html"
+  arvanitopoulos_2025: "Arvanitopoulos, Wilson & Morton (2025) Energy Policy 206:114787, spatial spillovers in heat-pump uptake — https://eprints.lse.ac.uk/128927/"
+  schleich_2016: "Schleich, Gassmann, Faure & Meissner (2016) Making the implicit explicit: a look inside the implicit discount rate, Energy Policy 97:321-331 — https://econpapers.repec.org/RePEc:hal:journl:hal-01366541"
+  dne_trendrapport_2026: "Dutch New Energy Research Warmtepomp Trendrapport 2026 via Solar Magazine: 2025 residential 86,000 all-electric, 43,000 hybrid — https://solarmagazine.nl/nieuws-zonne-energie/i43515/trendrapport-verkoop-warmtepompen-stijgt-maar-onzekerheid-blijft-groot ; boiler sales 428,000 (2020), 431,000 (2021) — https://nieuws.nl/economie/onderzoek-cv-ketel-blijft-meest-verkochte-verwarmingsapparaat"
+  cbs_85035: "CBS StatLine 85035NED Woningvoorraad; woningtype op 1 januari: 8,344,953 dwellings on 1 Jan 2026 — https://www.cbs.nl/nl-nl/cijfers/detail/85035NED"
+  kev_2026_hp_stock: "PBL KEV 2026: 661,000 air-water + 168,000 ground-source heat pumps end 2025; with CBS 85035NED dwelling stock"
+  cbs_gas_profiles_2026: "CBS (2026) De energierekening januari 2026, ch. 4: weather-corrected gas use of 10 gas-dwelling profiles 2019-2024 (heat-pump and DH dwellings excluded) — https://www.cbs.nl/nl-nl/longread/aanvullende-statistische-diensten/2026/de-energierekening-januari-2026/4-verschillen-tussen-huishoudens ; CBS note that area averages include DH dwellings with very low or zero gas use — https://www.cbs.nl/nl-nl/cijfers/detail/83026NED"
+  vve_grant_schemes: "RVO: household ISDE for a heat-network connection is EUR 3,775 but excludes members of a (mixed) VvE with collective heat supply — https://www.rvo.nl/subsidies-financiering/isde/woningeigenaren/aansluiting-warmtenet ; SVVE central connection only for VvEs with 100% owner-occupiers, mixed VvEs via SAH — https://www.rvo.nl/subsidies-financiering/svve/verduurzamingsmaatregelen ; Amsterdam 2026 municipal scheme, max EUR 5,300 per apartment for collective heat systems — https://zoek.officielebekendmakingen.nl/gmb-2026-59598.pdf"
+  wcw_vve: "Wet collectieve warmte (Kamerstuk 36576). Explanatory note: the VvE decision to accept an offer of a designated heat company is taken by absolute majority under art. 5:127(1) BW, but the VvE regulations may prescribe a higher threshold, and the decision will as a rule fall under that higher requirement — https://www.eerstekamer.nl/behandeling/20250703/stemmingsoverzicht_tweede_kamer ; Raad van State advice on the Grinwis/Bontenbal amendment — https://www.raadvanstate.nl/adviezen/@151605/w19-25-00127-iv/ ; WMA position paper on VvE connection decisions (statutes deviate from simple majority; quorum usually required) — https://www.wmanl.nl/wp-content/uploads/2025/03/position-paper-aansluiting-vves-op-warmtenet.pdf"
+  coalition_2026: "Coalition agreement (Jan 2026): hybrid heat-pump standard from 2029 where a heat network is not the better option"
+  none: "No external source; modeler assumption (see note)."

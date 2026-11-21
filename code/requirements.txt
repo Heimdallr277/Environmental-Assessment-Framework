@@ -1,0 +1,5 @@
+# Python 3.13. Direct dependencies for the matched timing experiment.
+numpy==2.5.5
+pandas==3.1.1
+pyyaml==6.0.3
+networkx==3.7
