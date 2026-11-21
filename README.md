@@ -26,8 +26,6 @@ Across 40 synthetic neighborhoods, each with 60 VvE buildings, the earliest feas
 
 About 87% of the earliest-date reduction occurred in collectively converting buildings. The 5th-95th percentile range across neighborhoods was -12.7% to -4.5% for the total percentage change. The earliest date is a conditional bound. The model assumes preparation times and an illustrative €3,775 district-heating connection grant per apartment. Individual choice is calibrated to two national sales shares. 
 
-**Open the results explorer.** Download the HTML file and open it in a browser with internet access. You can compare baseline and policy-package adopters, choose a grid pathway and repair rule, and inspect the heating mix, emissions by source, and sensitivity results. The results are embedded in the file. Plotly loads from its CDN.
-
 ## Run the timing experiment
 
 From the repository root, run the following commands.
