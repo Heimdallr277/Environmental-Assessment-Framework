@@ -26,7 +26,7 @@ About 87% of the earliest-date reduction occurred in collectively converting bui
 
 **Open the results explorer.** Download the HTML file and open it in a browser with internet access. You can compare baseline and policy-package adopters, choose a grid pathway and repair rule, and inspect the heating mix, emissions by source, and sensitivity results. The results are embedded in the file. Plotly loads from its CDN.
 
-**[Explore the Interactive Dashboard]([https://heimdallr277.github.io/Environmental-Assessment-Framework/])**
+**[Explore the Interactive Dashboard]([[https://heimdallr277.github.io/Environmental-Assessment-Framework/]](https://heimdallr277.github.io/Environmental-Assessment-Framework/))**
 
 
 ## Run the timing experiment
