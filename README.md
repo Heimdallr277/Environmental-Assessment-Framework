@@ -4,6 +4,8 @@
 
 Two neighborhoods can install the same heating systems by 2050 and still produce different cumulative emissions. To measure the effect of timing, I coupled an agent-based model of apartment owners and homeowners’ associations (*verenigingen van eigenaars*, VvEs) to a time-explicit greenhouse gas life-cycle assessment. The model simulates how a proposal reaches a vote, when a building converts, and which equipment operates in each intervening year.
 
+**[Explore the Interactive Dashboard](https://heimdallr277.github.io/Environmental-Assessment-Framework/)**
+
 The experimental contribution is a set of **matched replays**. I take the same simulated adopters, their technologies, useful heat demand and final uptake, and move the conversion dates. A replay at the original model dates supplies the reference. [Model protocol and equations.](#model-protocol)
 
 ## Project report
@@ -25,9 +27,6 @@ Across 40 synthetic neighborhoods, each with 60 VvE buildings, the earliest feas
 About 87% of the earliest-date reduction occurred in collectively converting buildings. The 5th-95th percentile range across neighborhoods was -12.7% to -4.5% for the total percentage change. The earliest date is a conditional bound. The model assumes preparation times and an illustrative €3,775 district-heating connection grant per apartment. Individual choice is calibrated to two national sales shares. 
 
 **Open the results explorer.** Download the HTML file and open it in a browser with internet access. You can compare baseline and policy-package adopters, choose a grid pathway and repair rule, and inspect the heating mix, emissions by source, and sensitivity results. The results are embedded in the file. Plotly loads from its CDN.
-
-**[Explore the Interactive Dashboard]([[https://heimdallr277.github.io/Environmental-Assessment-Framework/]](https://heimdallr277.github.io/Environmental-Assessment-Framework/))**
-
 
 ## Run the timing experiment
 
